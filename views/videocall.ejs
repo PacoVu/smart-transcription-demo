@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>RingCentral Smart Transcription</title>
+  <link href="./img/favicon.png" type="image/vnd.microsoft.icon" rel="shortcut icon">
+  <link href="./img/favicon.png" type="image/vnd.microsoft.icon" rel="icon">
+  <script src="js/videoengine.js" type="text/javascript"></script>
+  <script src="js/jquery-3.1.0.min.js"></script>
+  <script src="js/main.js" type="text/javascript"></script>
+  <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+  <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+  <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+  <link rel="stylesheet" href="css/bootstrap.min.css">
+  <link rel="stylesheet" type="text/css" href="css/main.css">
+  <link rel="stylesheet" type="text/css" href="css/ui.css">
+  <link rel="stylesheet" type="text/css" href="css/videoplayer.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-select/1.13.3/css/bootstrap-select.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.2.0/js/bootstrap.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-select/1.13.3/js/bootstrap-select.min.js"></script>
+
+  <script>
+    $(document).ready(function(){
+          $('[data-toggle="popover"]').popover({
+            placement : 'right',
+            trigger : 'hover'
+          });
+      });
+  </script>
+</head>
+<body>
+  <script>
+    window.results = <%- JSON.stringify(results) %>;
+    window.searchWord = "<%- searchWord === '*' ? '' : unescape(searchWord) %>"
+  </script>
+  <nav id="menu_header" class="navbar navbar-default no-border">
+    <span class="left-middle-align">
+      <span class="rclogo"><a href="/"><img alt="Brand" src="img/ringcentral-labs.png" height="40"></a></span>&nbsp;&nbsp;
+      <span class="title">Smart Transcription</span>
+    </span>
+    <ul class="nav navbar-nav navbar-left left-align-nav">
+      <li><a href="/readlog">Imports</a></li>
+      <li><a href="/recordedcalls">Data List</a></li>
+    </ul>
+    <ul class="nav navbar-nav navbar-right middle-align">
+      <li><span><b>&nbsp;&nbsp;<%- userName %>&nbsp;&nbsp;</b></span</li>
+      <li><a href="/about">&nbsp;&nbsp;About</a></li>
+      <!--li><span>&nbsp;&nbsp;|&nbsp;&nbsp;</span></li>
+      <li><a href="#" onclick="logout()">Logout</a></li-->
+    </ul>
+  </nav>
+
+  <section id="content" class="record-info">
+    <div class="row">
+      <div class="col-xs-12">
+      <div class="column left left-block">
+
+    <div id="subject_header" class="row">
+      <div class="col-xs-12 subject-line">
+        <% var icon = 'img/' %>
+        <% if (results.call_type == "PR") { %>
+          <% if (results.direction == "Out") { %>
+            <% var icon = 'img/CR_Out.png' %>
+          <% } else { %>
+            <% var icon = 'img/CR_In.png' %>
+          <% } %>
+        <% } else { %>
+          <% if (results.call_type == "CR") { %>
+            <% if (results.direction == "Out") { %>
+              <% var icon = 'img/CR_Out.png' %>
+            <% } else { %>
+              <% var icon = 'img/CR_In.png' %>
+            <% } %>
+          <% } else { %>
+            <% var icon = 'img/' + results.call_type + '.png' %>
+          <% } %>
+        <% } %>
+        <img src='<%= icon %>' class='call_icon vr_icon'></img>
+        <span><b>&nbsp;Subjects: </b></span>
+        <!--span><%= results['subject'] %></span-->
+        <input type="text" id="subject-field" disabled value="" size="52"></input>
+        <img id="edit-btn" src='img/edit.png' class="edit_icon" onclick="enableEditSubject()"></img>
+        &nbsp;&nbsp;&nbsp;
+      </div>
+    </div>
+    <div class="record-info-line" id="record_info_line">
+      <span class="record-info-title">
+        Meeting Info:
+      </span>
+      <span class="record-info-host">
+        <span class="bold">Host: </span>
+        <% if (results.host.name == "") { %>
+          <span><b>Unknown</b></span>
+        <% } else { %>
+        <span><b><%= results.host.name %></b></span>
+        <% } %>
+      </span>
+      <span class="record-info-customer">
+        <span class="bold">Participants: </span>
+        <% var firstP = results.participants[0].name %>
+        <% var otherP = "" %>
+        <% if (results.participants.length > 1) firstP += " ..." %>
+        <% for (var p of results.participants) { %>
+          <% otherP += p.name + " " %>
+        <% } %>
+      <span data-toggle="popover" data-content="<%= otherP %>"><%= firstP %></span>
+      </span>
+      &nbsp;&nbsp;&nbsp;
+      <% var localTime = parseInt(results.call_date) - utcOffset %>
+      <% var date = new Date(localTime) %>
+      <% var dateStr = date.toISOString().replace("T", " ").substring(0, 19) %>
+      <span><%= dateStr %></span>
+    </div>
+  </div>
+  <div class="column right right-block with-border">
+    <table>
+      <tr>
+        <td width="34%"><div id="speaker_insights"></div></td>
+        <td width="33%"><span id="engagement-column"></span></td>
+        <td width="33%"><span id="ttl-column"></span></td>
+      </tr>
+    </table>
+  </div>
+</div></div>
+    <div class="row">
+      <div class="col-xs-12">
+        <div class="column left left-block vr-left">
+          <div id="upper_block">
+            <div class="video-wrapper">
+              <div class="video-area">
+                <video id="audio_player" class="video_player">
+                  <source id='mp4Source' src='<%= results.recording_url %>' />
+                </video>
+                <div id="close-caption" class="overlay" style="display: none ">
+                  <div id="transcript-line">
+                    <span id="w0"></span>
+                    <span id="w1"></span>
+                    <span id="w2"></span>
+                    <span id="w3"></span>
+                    <span id="w4"></span>
+                    <span id="w5"></span>
+                    <span id="w6"></span>
+                    <span id="w7"></span>
+                    <span id="w8"></span>
+                    <span id="w9"></span>
+                    <span id="w10"></span>
+                    <span id="w11"></span>
+                    <span id="w12"></span>
+                    <span id="w13"></span>
+                    <span id="w14"></span>
+                  </div>
+                </div>
+              </div>
+              <div class="video-progress">
+                <progress id="video-progress" value="0" min="0">
+                  <span id="progress-bar"></span>
+                </progress>
+              </div>
+              <div class="video-controls">
+                <div class="video-play">
+                  <div class="pause" style="display: none;" id="video-pause"></div>
+                  <div class="play" style="display: none;" id="video-play"></div>
+                </div>
+                <div class="video-volume range-input">
+                  <img src="./img/volume-white.jpeg" id="volume-icon"/>
+                  <input type="range" min="0" max="1000" value="500" class="videoSliderVolume" id="videoSliderVolumeRange" style="display:none;"></input>
+                </div>
+                <div class="video-duration">
+                  <span id="video-playing-time">00:00</span>&nbsp;/&nbsp;<span id="video-duration">--:--</span>
+                </div>
+                <div class="video-fullscreen">
+                  <img src="./img/fullscreen.jpeg" id="fullscreen-icon" />
+                </div>
+              </div>
+            </div>
+
+            <div class="with-border">
+              <div style="width: 100%;">
+                <ul id="tabs" class="nav nav-tabs nav-justified" data-tabs="tabs">
+                  <li id="abstract-tab"><a href="#" onclick="displayAnalytics('abstract')">Abstracts</a></li>
+                  <li id="summary-tab"><a href="#" onclick="displayAnalytics('summary')">Summary</a></li>
+                  <li id="keyword-tab"><a href="#" onclick="displayAnalytics('keyword')" selected>Keywords</a></li>
+                  <li id="topic-tab"><a href="#" onclick="displayAnalytics('topic')">Topics</a></li>
+                  <li id="task-tab"><a href="#" onclick="displayAnalytics('task')">Tasks</a></li>
+                  <li id="question-tab"><a href="#" onclick="displayAnalytics('question')" selected>Questions</a></li>
+                </ul>
+              </div>
+            </div>
+          </div>
+          <div id="analyzed_content" class="scrollable_container"></div>
+        </div>
+        <div class="column right right-block vr-right with-border audio-content">
+          <div class="audio-content-header">
+            <div class="audio-content-title">
+              <!-- input type='button' id="display-mode" class="btn-rc" onclick="createConvoList()" value="Display Utterances"></input -->
+              <select id="transcript-mode" class="selectpicker filter-select" onchange="createConvoList()">
+                  <option selected value='paragraphs'>Paragraphs</option>
+                  <option value='utterances'>Utterances</option>
+                  <option value='transcripts'>Transcripts</option>
+              </select>
+            </div>
+            <span id="emotion-notation" style="display: none">Emotion notation: &nbsp;&nbsp;
+              <span class="anticipation notation">&nbsp;Anticipation</span>&nbsp;&nbsp;
+              <span class="joy notation">&nbsp;Joy</span>&nbsp;&nbsp;
+              <span class="trust notation">&nbsp;Trust</span>&nbsp;&nbsp;
+              <span class="surprise notation">&nbsp;Surpise</span>&nbsp;&nbsp;
+              <span class="sadness notation">&nbsp;Sadness</span>&nbsp;&nbsp;
+              <span class="disgust notation">&nbsp;Disgust</span>&nbsp;&nbsp;
+              <span class="fear notation">&nbsp;Fear</span>&nbsp;&nbsp;
+              <span class="anger notation">&nbsp;Anger</span>
+            </span>
+            <div class="search-block search-block-right">
+              <form class="form-inline" id="searchForm" onsubmit="searchForText(); event.preventDefault();">
+                <input type="text" class="form-control search-input search-transcript" placeholder="Search Transcript" id="search" onfocus="selectWord()" value="<%= searchArg === '*' ? '' : searchArg %>" required>
+                <img src="./img/search.jpeg" class="search-icon" />
+              </form>
+            </div>
+            <div class="font-size-control">
+              <span class="decrease" id="font_size_decrease">A-</span>
+              <span class="increase" id="font_size_increase">A+</span>
+            </div>
+          </div>
+          <div id="conversations_block" class="video_container scrollable_container"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+  <!--
+  <%- include('_footer') %>
+  -->
+</body>
+</html>
