@@ -4,8 +4,6 @@ const RCPlatform = require('./platform.js')
 
 require('dotenv').load()
 
-const ONE_DAY_TIMER_INTERVAL = 86400000
-
 function BgEngine(params) {
   this.params = params
   this.enrolledSpeakerIds = []
@@ -34,17 +32,12 @@ BgEngine.prototype = {
         var resp = await p.get(endpoint, queryParams)
         var jsonObj = await resp.json()
         for (var enrollment of jsonObj.records){
-          //this.enrolledSpeakerIds.push(enrollment.speakerId)
-          if (enrollment.hasOwnProperty('enrollmentId'))
-            this.enrolledSpeakerIds.push(enrollment.enrollmentId)
-          else
-            this.enrolledSpeakerIds.push(enrollment.speakerId)
+          this.enrolledSpeakerIds.push(enrollment.speakerId)
         }
         if (jsonObj.paging.page < jsonObj.paging.totalPages){
           let page = jsonObj.paging.page + 1
           await this._readAccountEnrolledSpeakerIds(p, page)
         }
-        //console.log(this.enrolledSpeakerIds)
       }catch (e){
         console.log("Unable to read speakers identification.", e.message)
       }
@@ -128,13 +121,7 @@ BgEngine.prototype = {
 
               var host = (record.direction == "Outbound") ? fromObj : toObj
               var participants = (record.direction == "Outbound") ? [toObj] : [fromObj]
-              /*
-              var participants = [
-                host,
-                (record.direction == "Outbound") ? toObj : fromObj
-                ]
-              */
-              console.log("Participants:", participants)
+
               var item = {
                 call_type: "CR",
                 uid: record.recording.id,
@@ -154,13 +141,6 @@ BgEngine.prototype = {
               if (response){
                 console.log("get account enrolled speaker ids")
                 await this.readAccountEnrolledSpeakerIds()
-                /*
-                var speakerIdIndex = this.enrolledSpeakerIds.indexOf(this.params.extensionId)
-                var speakerIds = []
-                if (speakerIdIndex >= 0)
-                  speakerIds.push(this.enrolledSpeakerIds[speakerIdIndex])
-                */
-                //var speakerIds = this.enrolledSpeakerIds
                 var accessToken = await this.rc_platform.getAccessToken(this.params.extensionId) // generate valid tokens
                 if (accessToken != ""){
                   var recordingInfo = {

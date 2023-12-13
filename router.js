@@ -17,17 +17,7 @@ function getUserIndex(id){
   }
   return -1
 }
-/*
-function getUserIndexByExtensionId(extId){
-  for (var i=0; i<users.length; i++){
-    var user = users[i]
-    if (extId == user.getExtensionId()){
-      return i
-    }
-  }
-  return -1
-}
-*/
+
 var router = module.exports = {
   loadLogin: async function(req, res){
     if (req.session.userId == 0) {
@@ -179,26 +169,6 @@ var router = module.exports = {
       return this.forceLogin(req, res)
     users[index].deleteEnrollment(res)
   },
-  /*
-  deleteItemFromDb: function(req, res){
-    var index = getUserIndex(req.session.userId)
-    if (index < 0)
-      return this.forceLogin(req, res)
-    users[index].deleteItemFromDb(req, res)
-  },
-  deleteItemsFromDb: function(req, res){
-    var index = getUserIndex(req.session.userId)
-    if (index < 0)
-      return this.forceLogin(req, res)
-    users[index].deleteItemsFromDb(req, res)
-  },
-  createRecord: function(req, res){
-    var index = getUserIndex(req.session.userId)
-    if (index < 0)
-      return this.forceLogin(req, res)
-    users[index].createRecord(req, res)
-  },
-  */
   transcriptCallRecording: async function(req, res){
     var index = getUserIndex(req.session.userId)
     if (index < 0)

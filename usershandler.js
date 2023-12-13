@@ -1,6 +1,4 @@
-var fs = require('fs')
 const pgdb = require('./db')
-//const RCAIEngine = require('./ringcentral-ai.js');
 const RCPlatform = require('./platform.js')
 
 require('dotenv').load()
@@ -893,23 +891,8 @@ User.prototype = {
     }
 }
 module.exports = User;
-// global function
-/*
-function dropTable(table, callback){
-  console.log("DROP TABLE")
-  var query = "DROP TABLE IF EXISTS " + table
-  pgdb.delete_table(query, (err, res) => {
-    if (err) {
-      console.log(err, res)
-      //copyTable(table)
-    }else{
-      console.log("DONE")
-      callback(null, "done")
-    }
-  })
-}
-*/
 
+// global function
 function formatDurationTime (duration){
   var hour = Math.floor(duration / 3600)
   var mins = Math.floor((duration % 3600) / 60)
@@ -918,62 +901,8 @@ function formatDurationTime (duration){
   secs = (secs < 10) ? "0"+secs : secs
   return `${hour}:${mins}:${secs}`
 }
-/*
-function checkFirstLogin(table, callback){
-    var query = `SELECT EXISTS ( SELECT 1 FROM pg_tables WHERE tablename='${table}')`
-    console.log(query)
-    pgdb.read(query, (err, result) => {
-      if (result.rows.length)
-        console.log(result.rows[0].exists)
-      callback(err, result)
-    })
-}
-*/
 
-function createTable(table, callback) {
-  console.log("CREATE TABLE: " + table)
-  if (process.env.FORCETODELETEUSERTABLE == 1){
-    console.log("err: drop old table")
-    dropTable(table, (err, res) => {
-      //if (!err){
-        pgdb.create_table(table, (err, res) => {
-          if (err) {
-            console.log("Cannot create table???")
-            console.log(err, res)
-            callback(err, err.message)
-            //copyTable(table)
-          }else{
-            console.log("DONE")
-            callback(null, "Ok")
-          }
-        })
-      //}
-    })
-  }else{
-    pgdb.create_table(table, (err, res) => {
-      if (err) {
-        console.log("Cannot create table???")
-        console.log(err, res)
-        callback(err, err.message)
-        //copyTable(table)
-      }else{
-        console.log("DONE")
-        callback(null, "Ok")
-
-      }
-    })
-  }
-}
-/*
-async function _createTableAsync(table){
-  await pgdb.createTableAsync(table)
-}
-*/
 
 function sortDates(a,b) {
   return new Date(parseInt(b.call_date)) - new Date(parseInt(a.call_date));
-}
-
-function sortScores(a,b) {
-  return b.score - a.score;
 }
