@@ -188,39 +188,9 @@ BgEngine.prototype = {
       var item = result.rows[0]
       if (req.body.type == 'ULV' || req.body.type == "ULC"){ // Upload content
         // no speaker ids for unknown participants from upload content
-        /*
-        speakerIds = []
-        speakerCount = result.rows[0].participants.length
-        for (var item of result.rows[0].participants){
-          var speakerIdIndex = this.enrolledSpeakerIds.indexOf(item.extension_id)
-          if (speakerIdIndex >= 0)
-            speakerIds.push(this.enrolledSpeakerIds[speakerIdIndex])
-        }
-        */
-        speakerCount = 0
+        speakerCount = -1
       }else{
         speakerIds = this.enrolledSpeakerIds
-        /*
-        if (req.body.type == 'CR'){ // RCV Voice calls
-          //speakerIds.push(result.rows[0].host.extension_id)
-          //speakerIds = this.enrolledSpeakerIds
-          //speakerCount = 3 // Default to 3 speakers to include the operator speaker
-        }else{ // RCV meetings
-          //if (result.rows[0].host.extension_id != this.extensionId){
-          //  enrollmentIds.push(result.rows[0].host.extension_id)
-          //}
-          speakerCount = result.rows[0].participants.length
-          for (var item of result.rows[0].participants){
-            var speakerIdIndex = this.enrolledSpeakerIds.indexOf(item.extension_id)
-            //if (enrollmentIdIndex >= 0 && item.extension_id != this.extensionId)
-            if (speakerIdIndex >= 0){
-              let found = speakerIds.indexOf(item.extension_id)
-              if (found < 0)
-                speakerIds.push(this.enrolledSpeakerIds[speakerIdIndex])
-            }
-          }
-        }
-        */
       }
     }
     console.log("speakerIds:", speakerIds)
@@ -231,8 +201,8 @@ BgEngine.prototype = {
         uid: req.body.uid,
         type: req.body.type,
         contentUri: `${req.body.recordingUrl}?access_token=${accessToken}`,
-        speakerIds: this.enrolledSpeakerIds //speakerIds,
-        //speakerCount: speakerCount
+        speakerIds: this.enrolledSpeakerIds,
+        speakerCount: speakerCount
       }
       if (req.body.type == "CR")
         recordingInfo['speakerCount'] = 3
@@ -250,7 +220,6 @@ BgEngine.prototype = {
     var query = `SELECT host, participants, call_type FROM ${this.getUserTable()} WHERE uid='${uid}'`
 
     var result = await pgdb.readAsync(query)
-    //var hostObj = undefined
     var participantsObj = []
     var callType = ""
     if (result && result.rows.length > 0){
@@ -328,27 +297,15 @@ BgEngine.prototype = {
         }
       }
     }
-    //console.log(utteranceInsights)
     // push the last speaker sentence
     conversations.push(speakerSentence)
-    /*
-    console.log("===== transcript =====")
-    console.log(transcript)
-    */
-    //console.log("===== conversations =====")
-    //console.log(conversations)
 
     var conversationalInsights = {
         keyPhrases: [],
         extractiveSummary: [],
         topics: [],
-        tasks: [],
         longAbstract: [],
-        shortAbstract: [],
-        overallSentiment: [],
-        qiQa: [],
-        objectionScore: [],
-        callScore: []
+        shortAbstract: []
       }
 
     for (var insight of jsonObj.conversationalInsights){
@@ -388,11 +345,6 @@ BgEngine.prototype = {
             conversationalInsights.topics.push(topic)
           }
           break
-        case "Tasks":
-          for (var item of insight.values){
-            conversationalInsights.tasks.push(item.value)
-          }
-          break
         case "AbstractiveSummaryLong":
           for (var item of insight.values){
             var longAbs = {
@@ -413,34 +365,6 @@ BgEngine.prototype = {
             conversationalInsights.shortAbstract.push(shortAbs)
           }
           break
-        case "OverallSentiment":
-          for (var value of insight.values){
-            conversationalInsights.overallSentiment.push(value)
-          }
-          break
-        case "QiQa":
-        for (var item of insight.values){
-          var value = {
-            start: item.start,
-            end: item.end,
-            question: item.question,
-            answer: item.answer,
-            speakerId: item.speakerId,
-            confidence: item.confidence
-          }
-          conversationalInsights.overallSentiment.push(value)
-        }
-          break
-        case "ObjectionScore":
-          for (var value of insight.values){
-            conversationalInsights.qiQa.push(value)
-          }
-          break
-        case "CallScore":
-          for (var value of insight.values){
-            conversationalInsights.callScore.push(value)
-          }
-          break
         default:
           break
       }
@@ -451,14 +375,7 @@ BgEngine.prototype = {
       energy: [],
       talkToListenRatio: [],
       questionsAsked: [],
-      interruptions: [],
-      tone: [],
-      pace: [],
-      talkTime: [],
-      talkingSpeed: [],
-      fillerWordRate: [],
-      longestMonologue: [],
-      patience: []
+      pace: []
     }
 
     for (var insight of jsonObj.speakerInsights.insights){
@@ -466,13 +383,6 @@ BgEngine.prototype = {
         case "Energy":
           for (var item of insight.values){
             speakerInsights.energy.push(item)
-            /*
-            var speaker = {
-              id: item.speakerId,
-              name: this._getSpeakerName(item.speakerId) // `Speaker ${item.speakerId}`
-            }
-            speakers.push(speaker)
-            */
           }
           break
         case "TalkToListenRatio":
@@ -485,44 +395,9 @@ BgEngine.prototype = {
             speakerInsights.questionsAsked.push(item)
           }
           break
-        case "Interruptions":
-          for (var item of insight.values){
-            speakerInsights.interruptions.push(item)
-          }
-          break
-        case "Tone":
-          for (var item of insight.values){
-            speakerInsights.tone.push(item)
-          }
-          break
         case "Pace":
           for (var item of insight.values){
             speakerInsights.pace.push(item)
-          }
-          break
-        case "TalkTime":
-          for (var item of insight.values){
-            speakerInsights.talkTime.push(item)
-          }
-          break
-        case "TalkingSpeed":
-          for (var item of insight.values){
-            speakerInsights.talkingSpeed.push(item)
-          }
-          break
-        case "FillerWordRate":
-          for (var item of insight.values){
-            speakerInsights.fillerWordRate.push(item)
-          }
-          break
-        case "LongestMonologue":
-          for (var item of insight.values){
-            speakerInsights.longestMonologue.push(item)
-          }
-          break
-        case "Patience":
-          for (var item of insight.values){
-            speakerInsights.patience.push(item)
           }
           break
         default:
@@ -570,15 +445,6 @@ BgEngine.prototype = {
       console.error("TRANSCRIPT UPDATE DB OK");
     }
   },
-  /*
-  _identifySpeaker: function(speakerId){
-      if (speakerId === this.params.extensionId){
-        return this.userName
-      }else{
-        return speakerId //`Speaker ${speakerId}`
-      }
-  },
-  */
   _identifySpeakers: function(speakers, speakerCount, callType, participantsObj, speakerId, text){
     console.log(speakerCount, " / ", participantsObj.length, ' / ', speakerId)
     var participant = participantsObj.find(o => o.extension_id === speakerId)
@@ -596,186 +462,6 @@ BgEngine.prototype = {
       }
     }
     return `Speaker ${speakerId}`
-  },
-  _identifySpeakers_noneed: function(speakers, speakerCount, callType, participantsObj, speakerId, text){
-    console.log(speakerCount, " / ", participantsObj.length, ' / ', speakerId)
-    var participant = participantsObj.find(o => o.extension_id === speakerId)
-    console.log("participant", participant)
-    if (participant){
-      return participant.name
-    }else if (callType == "CR"){
-      if (speakerCount > 2){
-        /*
-        var found = speakers.find(o => o.id == speakerId)
-        if (found){ // found 1 identified speaker => check and return the name of the other one
-          //console.log("One of the call participants. Detect if already assigned")
-          console.log("found identified speaker", found)
-          return found.name
-        }
-        */
-        if (  speakerId == '0' && // only if first speaker is speaker 0!!!
-              (text.indexOf("this call is being recorded") >= 0 ||
-               text.indexOf("if you do not wish to be recorded please disconnect at this time.") >= 0 ||
-               text.indexOf("please disconnect at this time") >= 0) ){
-          return "Operator"
-        }else{
-          return `Speaker ${speakerId}`
-          /*
-          console.log("One of the call participants. Detect if already assigned")
-          var found = speakers.find(o => o.id == speakerId)
-          console.log(found)
-          if (found){ // found 1 identified speaker => check and return the name of the other one
-            return found.name
-          }else{
-            console.log("Not yet assigned", speakers, speakerId)
-            for (var p of participantsObj){
-              console.log("p", p)
-              if (p.extension_id == speakerId){
-                return p.name
-              }
-            }
-            return `Speaker ${speakerId}`
-          }
-          */
-        }
-      }else if (speakerCount == 2){ // 2 speakers
-        console.log("2 speakers, 2 participants?", participantsObj.length)
-        //if (participantsObj.length == 2){
-          var found = speakers.find(o => o.id == speakerId)
-          if (found){ // found 1 identified speaker => check and return the name of the other one
-            return found.name
-          }else{
-            console.log("No identified speaker or not yet identified", speakers, speakerId)
-            for (var p of participantsObj){
-              console.log("p", p)
-              if (p.extension_id == speakerId){
-                return p.name
-                //var assigned = speakers.find(s => s.name == p.name)
-                //return (!assigned) ? p.name : `Speaker ${speakerId}`
-              }
-            }
-            return `Speaker ${speakerId}`
-          }
-        //}
-      }else{
-        console.log("Why only 1 speaker?")
-        return `Speaker ${speakerId}`
-      }
-    }else{ // Meetings, Demo media
-      console.log("Detect meetings, demo media speakers")
-      /*
-      if (speakerCount == 2 && participantsObj.length == 2){
-        var found = speakers.find(o => o.id == speakerId)
-        if (found){ // found 1 identified speaker => check and return the name of the other one
-          return found.name
-        }else{
-          console.log("Why:", speakers, speakerId)
-          for (var p of participantsObj){
-            console.log("p", p)
-            if (p.extension_id == ''){
-              var assigned = speakers.find(s => s.name == p.name)
-              var name = p.name
-              if (assigned)
-                name = `Speaker ${speakerId}`
-              return name
-              //return (p.name != '') ? p.name : `Speaker ${speakerId}`
-            }
-          }
-        }
-      }else if (speakerCount == 3 && participantsObj.length == 2){
-      */
-        for (var p of participantsObj){
-          console.log("p", p)
-          if (p.extension_id == speakerId){
-            return p.name
-          }
-        }
-        return `Speaker ${speakerId}`
-      //}
-      //console.log("Return end")
-      //return `Speaker ${speakerId}`
-    }
-  },
-  _identifySpeakers_old: function(speakers, speakerCount, callType, participantsObj, speakerId, text){
-    console.log(speakerCount, " / ", participantsObj.length, ' / ', speakerId)
-    var participant = participantsObj.find(o => o.extension_id === speakerId)
-    console.log("participant", participant)
-    if (participant){
-      return participant.name
-    }else if (callType == "CR" && speakerCount > 2){
-      if (  speakerId == '0' || // only if first speaker is speaker 0!!!
-            text.indexOf("this call is being recorded") >= 0 ||
-            text.indexOf("if you do not wish to be recorded please disconnect at this time.") >= 0 ||
-            text.indexOf("please disconnect at this time") >= 0 ){
-        return "Operator"
-      }else{
-        console.log("One of the call participants. Detect if already assigned")
-        var found = speakers.find(o => o.id == speakerId)
-        console.log(found)
-        if (found){ // found 1 identified speaker => check and return the name of the other one
-          return found.name
-        }else{
-          console.log("Not yet assigned", speakers, speakerId)
-          if (callType == "CR"){
-            for (var p of participantsObj){
-              console.log("p", p)
-              if (p.extension_id == ''){
-                var assigned = speakers.find(s => s.name == p.name)
-                //var name = p.name
-                //if (assigned)
-                //  name = `Speaker ${speakerId}`
-                //return name
-                return (assigned) ? p.name : `Speaker ${speakerId}`
-              }
-            }
-          }
-          /*
-          var check = participantsObj.findIndex(o => o.extension_id == speakerId)
-          var index = (check == 0) ? 1 : 0
-          console.log("index", index)
-          return participantsObj[index].name
-          */
-        }
-      }
-    }else{
-      console.log("Last else?")
-      if (speakerCount == 2 && participantsObj.length == 2){
-        var found = speakers.find(o => o.id == speakerId)
-        if (found){ // found 1 identified speaker => check and return the name of the other one
-          return found.name
-        }else{
-          console.log("Why:", speakers, speakerId)
-          for (var p of participantsObj){
-            console.log("p", p)
-            if (p.extension_id == ''){
-              var assigned = speakers.find(s => s.name == p.name)
-              var name = p.name
-              if (assigned)
-                name = `Speaker ${speakerId}`
-              return name
-              //return (p.name != '') ? p.name : `Speaker ${speakerId}`
-            }
-          }
-        }
-      }else if (speakerCount == 3 && participantsObj.length == 2){
-        console.log("this else 2222")
-        if (callType == "CR"){
-          for (var p of participantsObj){
-            console.log("p", p)
-            if (p.extension_id == ''){
-              var assigned = speakers.find(s => s.name == p.name)
-              var name = p.name
-              if (assigned)
-                name = `Speaker ${speakerId}`
-              return name
-              //return (p.name != '') ? p.name : `Speaker ${speakerId}`
-            }
-          }
-        }
-      }
-      console.log("Return end")
-      return `Speaker ${speakerId}`
-    }
   },
   _getSpeakerName: function(speakerId){
       if (speakerId === this.params.extensionId){
